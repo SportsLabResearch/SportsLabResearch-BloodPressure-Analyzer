@@ -1,0 +1,37 @@
+﻿site_name: SportsLabResearch-BloodPressure-Analyzer
+site_description: Clinical software for analysing resting blood pressure according to ESH 2023.
+site_url: https://sportslabresearch.github.io/SportsLabResearch-BloodPressure-Analyzer/
+
+repo_name: SportsLabResearch-BloodPressure-Analyzer
+repo_url: https://github.com/SportsLabResearch/SportsLabResearch-BloodPressure-Analyzer
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - search.suggest
+    - content.code.copy
+
+plugins:
+  - search
+
+markdown_extensions:
+  - tables
+  - fenced_code
+  - admonition
+  - attr_list
+  - def_list
+  - md_in_html
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+
+nav:
+  - Home: index.md
