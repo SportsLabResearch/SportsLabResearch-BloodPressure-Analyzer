@@ -35,3 +35,21 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Getting Started: getting-started.md
+  - Installation: installation.md
+
+  - User Guide:
+      - Overview: user-guide/index.md
+
+  - Technical Reports:
+      - Overview: technical-reports/index.md
+
+  - Validation:
+      - Overview: validation/index.md
+      - Reports: validation/reports.md
+
+  - Citation: citation.md
+  - Publications: publications.md
+  - Downloads: downloads.md
+  - FAQ: faq.md
+  - Changelog: changelog.md
