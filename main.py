@@ -34,6 +34,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+from src.connectors import ConnectorFactory, ConnectorLoader
+
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.section import WD_ORIENT
@@ -911,7 +913,8 @@ def configurar_consola():
 
 
 def listar_archivos_entrada():
-    extensiones = {".xlsx", ".xls", ".csv"}
+    extensiones = set(ConnectorFactory.supported_extensions())
+
     return sorted(
         [
             ruta
@@ -920,6 +923,50 @@ def listar_archivos_entrada():
         ],
         key=lambda ruta: ruta.name.lower(),
     )
+
+
+def adaptar_dataframe_conector(dataframe):
+    """Convierte el formato estándar al formato interno del analizador."""
+    fecha_dt = pd.to_datetime(
+        dataframe["date"],
+        errors="coerce",
+        dayfirst=True,
+    )
+
+    hora = (
+        dataframe["time"]
+        .astype("string")
+        .fillna("")
+        .str.strip()
+    )
+
+    adaptado = pd.DataFrame(
+        {
+            "Sujeto": dataframe["subject"].astype("string").str.strip(),
+            "Archivo": dataframe["file_name"].astype("string").str.strip(),
+            "Fecha_dt": fecha_dt,
+            "Fecha": fecha_dt.dt.strftime("%d/%m/%Y"),
+            "Hora": hora,
+            "Dia": pd.to_numeric(dataframe["session"], errors="coerce"),
+            "Medicion": pd.to_numeric(dataframe["measurement"], errors="coerce"),
+            "PAS": pd.to_numeric(dataframe["sbp"], errors="coerce"),
+            "PAD": pd.to_numeric(dataframe["dbp"], errors="coerce"),
+            "FC": pd.to_numeric(dataframe["heart_rate"], errors="coerce"),
+            "HRV": pd.to_numeric(dataframe["hrv"], errors="coerce"),
+            "Dispositivo": dataframe["device"].astype("string").str.strip(),
+            "Fuente": dataframe["source"].astype("string").str.strip(),
+            "ID_registro": dataframe["record_id"],
+        }
+    )
+
+    adaptado = adaptado.dropna(
+        subset=["Sujeto", "Dia", "Medicion", "PAS", "PAD", "FC"]
+    ).copy()
+
+    adaptado["Dia"] = adaptado["Dia"].astype(int)
+    adaptado["Medicion"] = adaptado["Medicion"].astype(int)
+
+    return adaptado.reset_index(drop=True)
 
 
 def leer_csv_robusto(ruta_csv):
@@ -959,31 +1006,38 @@ def cargar_entradas(archivos):
     entradas = []
     errores = []
 
-    print("\nAnalizando archivos...")
+    print("\nAnalizando archivos mediante conectores...")
 
     for ruta_original in archivos:
         try:
-            ruta_lectura = preparar_archivo(ruta_original)
-            raw = leer_excel(ruta_lectura)
+            loader = ConnectorLoader()
+            dataframe_estandar = loader.load(ruta_original)
+            raw = adaptar_dataframe_conector(dataframe_estandar)
+
+            if raw.empty:
+                raise ValueError("El conector no devolvió registros válidos.")
+
             sujeto = str(raw["Sujeto"].iloc[0]).strip()
+            connector_info = loader.info()
 
             entradas.append(
                 {
                     "Sujeto": sujeto,
                     "Archivo": ruta_original.name,
                     "Formato": ruta_original.suffix.upper().lstrip("."),
+                    "Conector": connector_info.get("connector", ""),
                     "Raw": raw,
                     "Ruta_original": ruta_original,
-                    "Ruta_lectura": ruta_lectura,
                 }
             )
+
+            print(
+                f"OK {ruta_original.name} -> "
+                f"{connector_info.get('connector', 'Conector desconocido')}"
+            )
+
         except Exception as exc:
-            errores.append(
-                {
-                    "Archivo": ruta_original.name,
-                    "Error": str(exc),
-                }
-            )
+            errores.append({"Archivo": ruta_original.name, "Error": str(exc)})
             print(f"ERROR leyendo {ruta_original.name}: {exc}")
 
     if not entradas:
@@ -1013,6 +1067,7 @@ def construir_resumen_entradas(entradas):
                 "Sujeto": entrada["Sujeto"],
                 "Archivo": entrada["Archivo"],
                 "Formato": entrada["Formato"],
+                "Conector": entrada.get("Conector", ""),
                 "Registros": len(raw),
                 "Sesiones": int(sesiones),
                 "Raw": raw,
@@ -1033,7 +1088,8 @@ def mostrar_entradas(resumen_entradas):
             f"     Archivo  : {entrada['Archivo']}\n"
             f"     Registros: {entrada['Registros']} | "
             f"Sesiones: {entrada['Sesiones']} | "
-            f"Formato: {entrada['Formato']}"
+            f"Formato: {entrada['Formato']} | "
+            f"Conector: {entrada.get('Conector', '')}"
         )
 
     print("-" * 78)
@@ -1087,13 +1143,13 @@ def main():
         CARPETA_CONVERTIDOS.mkdir(parents=True, exist_ok=True)
 
         print("=" * 78)
-        print("SportsLabResearch - Blood Pressure Analyzer v0.6.7")
+        print("SportsLabResearch - Blood Pressure Analyzer v0.7.0")
         print("=" * 78)
 
         archivos = listar_archivos_entrada()
         if not archivos:
             raise FileNotFoundError(
-                "No hay archivos .xlsx, .xls o .csv en data/input."
+                "No hay archivos compatibles con los conectores registrados en data/input."
             )
 
         entradas, errores_globales = cargar_entradas(archivos)
