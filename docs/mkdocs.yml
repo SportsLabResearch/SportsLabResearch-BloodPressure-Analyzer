@@ -1,0 +1,16 @@
+site_name: SportsLabResearch-BloodPressure-Analyzer
+site_url: https://sportslabresearch.github.io/SportsLabResearch-BloodPressure-Analyzer/
+repo_url: https://github.com/SportsLabResearch/SportsLabResearch-BloodPressure-Analyzer
+theme:
+  name: material
+plugins:
+  - search
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Installation: installation.md
+  - Downloads: downloads.md
+  - Citation: citation.md
+  - Publications: publications.md
+  - FAQ: faq.md
+  - Changelog: changelog.md
