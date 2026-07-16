@@ -1,4 +1,6 @@
-﻿# SportsLabResearch-BloodPressure-Analyzer
+﻿DOI: https://doi.org/10.5281/zenodo.21395622
+
+# SportsLabResearch-BloodPressure-Analyzer
 
 Clinical software for analysing resting blood pressure according to the European Society of Hypertension (ESH 2023).
 
@@ -34,3 +36,5 @@ MIT
 ## SportsLabResearch
 
 https://github.com/SportsLabResearch
+
+
