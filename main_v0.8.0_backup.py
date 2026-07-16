@@ -500,159 +500,58 @@ def color_estado_pa(sigla, valor):
     return "#D9EAF7"
 
 
-def crear_dashboard(resumen, medias, carpeta):
-    """Genera un dashboard clínico profesional con los datos reales."""
+def crear_dashboard(resumen, carpeta):
     carpeta.mkdir(parents=True, exist_ok=True)
     sujeto = resumen["Sujeto"]
+    fig = plt.figure(figsize=(13.2, 7.2))
+    fig.patch.set_facecolor("white")
+    fig.suptitle(f"Dashboard basal clínico | {sujeto}", fontsize=18, fontweight="bold", y=0.97)
+    fig.text(0.5, 0.925, "Presión arterial domiciliaria · Orientación ESH 2023", ha="center", fontsize=11)
 
-    medias = medias.sort_values("Dia").copy()
-    x = medias["Dia"].astype(float)
-    pas = medias["PAS_MEDIA"].astype(float)
-    pad = medias["PAD_MEDIA"].astype(float)
+    datos = [
+        ("PAS", resumen['PAS_media'], "mmHg", "Sistólica media"),
+        ("PAD", resumen['PAD_media'], "mmHg", "Diastólica media"),
+        ("FC", resumen['FC_media'], "lpm", "Frecuencia cardiaca"),
+        ("PAM", resumen['PAM_media'], "mmHg", "Presión arterial media"),
+        ("PP", resumen['Presion_pulso_media'], "mmHg", "Presión de pulso"),
+    ]
 
-    calidad = min(
-        100.0,
-        (resumen["Dias_validos"] / max(resumen["Dias_solicitados"], 1)) * 100,
-    )
-    estabilidad_pas = float(pas.std(ddof=1)) if len(pas) > 1 else 0.0
-    estabilidad_pad = float(pad.std(ddof=1)) if len(pad) > 1 else 0.0
-
-    if resumen["PAS_media"] >= UMBRAL_URGENTE_PAS or resumen["PAD_media"] >= UMBRAL_URGENTE_PAD:
-        estado = "MUY ELEVADA"
-        estado_color = "#C62828"
-    elif resumen["PAS_media"] >= UMBRAL_HOME_PAS or resumen["PAD_media"] >= UMBRAL_HOME_PAD:
-        estado = "ELEVADA"
-        estado_color = "#F9A825"
-    else:
-        estado = "NO ELEVADA"
-        estado_color = "#2E7D32"
-
-    def tarjeta(figura, izquierda, titulo, valor, unidad, subtitulo, color):
-        ax = figura.add_axes([izquierda, 0.69, 0.145, 0.16])
+    for i, (sigla, valor, unidad, subtitulo) in enumerate(datos):
+        ax = fig.add_axes([0.045 + i * 0.19, 0.62, 0.17, 0.22])
         ax.axis("off")
-        ax.add_patch(
-            plt.Rectangle(
-                (0, 0), 1, 1,
-                facecolor="white",
-                edgecolor="#D9E2F3",
-                linewidth=1.2,
-            )
-        )
-        ax.text(0.06, 0.82, titulo, fontsize=10, fontweight="bold", color="#203864")
-        ax.text(0.06, 0.45, valor, fontsize=22, fontweight="bold", color="#10253F")
-        ax.text(0.67, 0.48, unidad, fontsize=8.5, color="#595959")
-        ax.add_patch(
-            plt.Rectangle((0.06, 0.10), 0.58, 0.18, facecolor=color, edgecolor="none", alpha=0.18)
-        )
-        ax.text(0.35, 0.19, subtitulo, ha="center", va="center", fontsize=8.5, color=color, fontweight="bold")
+        face = color_estado_pa(sigla, valor)
+        rect = plt.Rectangle((0, 0), 1, 1, facecolor=face, edgecolor="#404040", linewidth=1.4, alpha=0.85)
+        ax.add_patch(rect)
+        ax.text(0.05, 0.80, sigla, fontsize=13, fontweight="bold")
+        ax.text(0.05, 0.43, f"{valor:.1f}", fontsize=24, fontweight="bold")
+        ax.text(0.68, 0.47, unidad, fontsize=10)
+        ax.text(0.05, 0.16, subtitulo, fontsize=9)
 
-    fig = plt.figure(figsize=(16, 9), facecolor="#EEF3F8")
-
-    # Cabecera
-    ax_header = fig.add_axes([0.02, 0.885, 0.96, 0.095])
-    ax_header.axis("off")
-    ax_header.add_patch(plt.Rectangle((0, 0), 1, 1, facecolor="#0B2F5B", edgecolor="none"))
-    ax_header.text(0.025, 0.63, "SportsLabResearch · Blood Pressure Analyzer", fontsize=19, color="white", fontweight="bold")
-    ax_header.text(0.025, 0.25, "Dashboard clínico de presión arterial domiciliaria · Guía ESH 2023", fontsize=10.5, color="#D9EAF7")
-    ax_header.text(0.98, 0.63, f"Sujeto: {sujeto}", fontsize=11, color="white", ha="right", fontweight="bold")
-    ax_header.text(0.98, 0.25, f"Periodo: {resumen['Fecha_inicio']} – {resumen['Fecha_fin']}", fontsize=9.5, color="#D9EAF7", ha="right")
-
-    tarjeta(fig, 0.035, "PAS media", f"{resumen['PAS_media']:.1f}", "mmHg", "ESH 2023", color_estado_pa("PAS", resumen["PAS_media"]))
-    tarjeta(fig, 0.195, "PAD media", f"{resumen['PAD_media']:.1f}", "mmHg", "ESH 2023", color_estado_pa("PAD", resumen["PAD_media"]))
-    tarjeta(fig, 0.355, "FC media", f"{resumen['FC_media']:.1f}", "lpm", "Reposo", "#2F75B5")
-    tarjeta(fig, 0.515, "PAM", f"{resumen['PAM_media']:.1f}", "mmHg", "Hemodinámica", "#8064A2")
-    tarjeta(fig, 0.675, "Calidad", f"{calidad:.0f}%", "", "Línea base", "#2E7D32" if calidad >= 90 else "#F9A825")
-    tarjeta(fig, 0.835, "Clasificación", estado, "", "ESH 2023", estado_color)
-
-    # Evolución temporal
-    ax_pa = fig.add_axes([0.045, 0.34, 0.56, 0.29], facecolor="white")
-    ax_pa.plot(x, pas, marker="o", linewidth=2.3, markersize=5, label="PAS media")
-    ax_pa.plot(x, pad, marker="o", linewidth=2.3, markersize=5, label="PAD media")
-    ax_pa.axhline(UMBRAL_HOME_PAS, linestyle="--", linewidth=1.1, alpha=0.75, label="Umbral PAS 135")
-    ax_pa.axhline(UMBRAL_HOME_PAD, linestyle="--", linewidth=1.1, alpha=0.75, label="Umbral PAD 85")
-    ax_pa.fill_between(x, UMBRAL_HOME_PAS, max(max(pas.max(), UMBRAL_HOME_PAS + 5), 150), alpha=0.05)
-    ax_pa.set_title("Evolución de la presión arterial", fontsize=13, fontweight="bold", color="#203864", pad=10)
-    ax_pa.set_xlabel("Sesión")
-    ax_pa.set_ylabel("mmHg")
-    ax_pa.grid(True, linestyle="--", alpha=0.22)
-    ax_pa.legend(loc="best", fontsize=8, ncol=2)
-    ax_pa.spines[["top", "right"]].set_visible(False)
-
-    # Distribución PAS/PAD
-    ax_dist = fig.add_axes([0.635, 0.34, 0.325, 0.29], facecolor="white")
-    ax_dist.scatter(pas, pad, s=55, alpha=0.75, edgecolors="white", linewidths=0.6)
-    ax_dist.axvline(UMBRAL_HOME_PAS, linestyle="--", linewidth=1.1)
-    ax_dist.axhline(UMBRAL_HOME_PAD, linestyle="--", linewidth=1.1)
-    ax_dist.set_title("Distribución PAS/PAD", fontsize=13, fontweight="bold", color="#203864", pad=10)
-    ax_dist.set_xlabel("PAS (mmHg)")
-    ax_dist.set_ylabel("PAD (mmHg)")
-    ax_dist.grid(True, linestyle="--", alpha=0.20)
-    ax_dist.spines[["top", "right"]].set_visible(False)
-
-    # Panel clasificación y estabilidad
-    ax_info = fig.add_axes([0.045, 0.08, 0.29, 0.20])
-    ax_info.axis("off")
-    ax_info.add_patch(plt.Rectangle((0, 0), 1, 1, facecolor="white", edgecolor="#D9E2F3", linewidth=1.2))
-    ax_info.text(0.04, 0.86, "Clasificación y estabilidad", fontsize=11.5, fontweight="bold", color="#203864")
-    filas = [
-        ("Clasificación ESH", resumen["Clasificacion_ESH"]),
-        ("DE PAS", f"{estabilidad_pas:.1f} mmHg"),
-        ("DE PAD", f"{estabilidad_pad:.1f} mmHg"),
-        ("Mediciones", str(resumen["Mediciones_totales"])),
-        ("Sesiones válidas", f"{resumen['Dias_validos']} de {resumen['Dias_solicitados']}"),
-    ]
-    y = 0.68
-    for etiqueta, valor in filas:
-        ax_info.text(0.05, y, etiqueta, fontsize=8.8, color="#595959")
-        ax_info.text(0.95, y, valor, fontsize=8.8, ha="right", color="#10253F", fontweight="bold")
-        y -= 0.13
-
-    # Panel tendencias
-    ax_trend = fig.add_axes([0.355, 0.08, 0.25, 0.20])
-    ax_trend.axis("off")
-    ax_trend.add_patch(plt.Rectangle((0, 0), 1, 1, facecolor="white", edgecolor="#D9E2F3", linewidth=1.2))
-    ax_trend.text(0.05, 0.86, "Tendencias", fontsize=11.5, fontweight="bold", color="#203864")
-    tendencias = [
-        ("PAS", resumen["Pendiente_PAS"], "mmHg/sesión"),
-        ("PAD", resumen["Pendiente_PAD"], "mmHg/sesión"),
-        ("FC", resumen["Pendiente_FC"], "lpm/sesión"),
-    ]
-    y = 0.64
-    for etiqueta, valor, unidad in tendencias:
-        simbolo = "↑" if valor > 0.3 else "↓" if valor < -0.3 else "→"
-        color = "#C62828" if valor > 0.3 else "#2E7D32" if valor < -0.3 else "#2F75B5"
-        ax_trend.text(0.06, y, etiqueta, fontsize=9.5, fontweight="bold")
-        ax_trend.text(0.22, y, simbolo, fontsize=15, color=color, fontweight="bold")
-        ax_trend.text(0.34, y, f"{valor:+.2f} {unidad}", fontsize=9.2, color="#404040")
-        y -= 0.20
-
-    # Resumen ejecutivo
-    ax_resumen = fig.add_axes([0.635, 0.08, 0.325, 0.20])
-    ax_resumen.axis("off")
-    ax_resumen.add_patch(plt.Rectangle((0, 0), 1, 1, facecolor="white", edgecolor="#D9E2F3", linewidth=1.2))
-    ax_resumen.text(0.04, 0.86, "Resumen ejecutivo", fontsize=11.5, fontweight="bold", color="#203864")
+    ax_txt = fig.add_axes([0.05, 0.34, 0.90, 0.20])
+    ax_txt.axis("off")
+    ax_txt.add_patch(plt.Rectangle((0, 0), 1, 1, fill=False, edgecolor="#808080", linewidth=1.1))
     texto = (
-        f"{resumen['Resumen_ESH']} "
-        f"La calidad de la línea base es del {calidad:.0f}% y se analizaron "
-        f"{resumen['Mediciones_totales']} mediciones en {resumen['Dias_validos']} sesiones. "
-        f"{recomendacion_pa(resumen['PAS_media'], resumen['PAD_media'])}"
+        f"Resultado ESH 2023: {resumen['Resumen_ESH']}\n"
+        f"Ventana analizada: día {resumen['Dia_inicio']} a día {resumen['Dia_fin']} | "
+        f"{resumen['Dias_validos']} días válidos | {resumen['Mediciones_totales']} mediciones.\n"
+        f"Tendencia PAS: {resumen['Pendiente_PAS']:.2f} mmHg/día (R²={resumen['R2_PAS']:.2f}) · "
+        f"Tendencia PAD: {resumen['Pendiente_PAD']:.2f} mmHg/día (R²={resumen['R2_PAD']:.2f}) · "
+        f"Tendencia FC: {resumen['Pendiente_FC']:.2f} lpm/día (R²={resumen['R2_FC']:.2f})."
     )
-    ax_resumen.text(0.04, 0.70, texto, fontsize=9.0, va="top", wrap=True, linespacing=1.35, color="#303030")
+    ax_txt.text(0.02, 0.82, texto, fontsize=11, va="top", linespacing=1.5)
 
-    fig.text(
-        0.5,
-        0.025,
-        "Informe orientativo. No sustituye la valoración clínica de un profesional sanitario.",
-        ha="center",
-        fontsize=8.5,
-        color="#666666",
-        style="italic",
-    )
+    ax_rec = fig.add_axes([0.05, 0.12, 0.90, 0.15])
+    ax_rec.axis("off")
+    ax_rec.add_patch(plt.Rectangle((0, 0), 1, 1, facecolor="#F7F7F7", edgecolor="#808080", linewidth=1.0))
+    ax_rec.text(0.02, 0.70, "Recomendación práctica", fontsize=11, fontweight="bold")
+    ax_rec.text(0.02, 0.40, recomendacion_pa(resumen['PAS_media'], resumen['PAD_media']), fontsize=10, va="top")
+    ax_rec.text(0.02, 0.13, "Nota: informe orientativo; no sustituye la valoración de un profesional sanitario.", fontsize=9, style="italic")
 
-    ruta = carpeta / f"Dashboard_Clinico_PRO_{nombre_seguro(sujeto)}.png"
-    fig.savefig(ruta, dpi=220, bbox_inches="tight", facecolor=fig.get_facecolor())
+    ruta = carpeta / f"Dashboard_Clinico_{nombre_seguro(sujeto)}.png"
+    fig.savefig(ruta, dpi=240, bbox_inches="tight")
     plt.close(fig)
     return ruta
+
 
 def anotar_puntos(ax, x, y, unidad=""):
     for xi, yi in zip(x, y):
@@ -1230,22 +1129,6 @@ def carpeta_salida_entrada(sujeto, archivo):
     return CARPETA_RESULTADOS / f"{base}__{origen}"
 
 
-
-def mostrar_cabecera_aplicacion(total_archivos):
-    extensiones = ", ".join(ConnectorFactory.supported_extensions()).upper()
-
-    print("=" * 78)
-    print(f"SportsLabResearch - Blood Pressure Analyzer v{VERSION}")
-    print("Análisis basal domiciliario de presión arterial | ESH 2023")
-    print("=" * 78)
-    print(f"Archivos detectados : {total_archivos}")
-    print(f"Formatos admitidos  : {extensiones}")
-    print(f"Carpeta de entrada  : {CARPETA_DATOS}")
-    print(f"Carpeta de salida   : {CARPETA_RESULTADOS}")
-    print("-" * 78)
-    print("Informe orientativo. No sustituye la valoración de un profesional sanitario.")
-    print("=" * 78)
-
 def main():
     try:
         configurar_consola()
@@ -1254,8 +1137,11 @@ def main():
         CARPETA_RESULTADOS.mkdir(parents=True, exist_ok=True)
         CARPETA_CONVERTIDOS.mkdir(parents=True, exist_ok=True)
 
+        print("=" * 78)
+        print(f"SportsLabResearch - Blood Pressure Analyzer v{VERSION}")
+        print("=" * 78)
+
         archivos = listar_archivos_entrada()
-        mostrar_cabecera_aplicacion(len(archivos))
         if not archivos:
             raise FileNotFoundError(
                 "No hay archivos compatibles con los conectores registrados en data/input."
@@ -1349,7 +1235,6 @@ def main():
                     sujeto: {
                         "dashboard": crear_dashboard(
                             resumen,
-                            medias_lb,
                             carpeta_figuras,
                         ),
                         "pa": crear_grafico_pa(

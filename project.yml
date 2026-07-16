@@ -2,10 +2,12 @@
   name: SportsLabResearch-BloodPressure-Analyzer
   description: Clinical software for analysing resting blood pressure using ESH 2023 recommendations.
   version: 0.1.0-alpha
+  status: alpha
 
   organization: SportsLabResearch
   author: José Pino-Ortega
   license: MIT
+  copyright: "© SportsLabResearch"
 
   github: https://github.com/SportsLabResearch/SportsLabResearch-BloodPressure-Analyzer
   documentation: https://sportslabresearch.github.io/SportsLabResearch-BloodPressure-Analyzer/
@@ -18,10 +20,26 @@
 
   python: ">=3.11"
 
+  website:
+  email:
+
+  scientific:
+    guideline: "European Society of Hypertension (ESH) 2023"
+    validation: pending
+    peer_review: false
+
+  outputs:
+    excel: true
+    word: true
+    pdf: true
+    dashboard: true
+
   keywords:
     - Blood Pressure
     - Hypertension
     - ESH 2023
-    - SportsLabResearch
     - Clinical Dashboard
+    - SportsLabResearch
     - Home Blood Pressure
+    - Clinical Decision Support
+    - Cardiovascular Risk

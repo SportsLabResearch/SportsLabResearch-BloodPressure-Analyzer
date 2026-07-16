@@ -1,21 +1,42 @@
 ﻿site_name: SportsLabResearch-BloodPressure-Analyzer
-site_description: Clinical software for analysing resting blood pressure according to ESH 2023.
+site_description: Clinical software for analysing resting blood pressure according to ESH 2023 recommendations.
 site_url: https://sportslabresearch.github.io/SportsLabResearch-BloodPressure-Analyzer/
 
-repo_name: SportsLabResearch-BloodPressure-Analyzer
+repo_name: SportsLabResearch/SportsLabResearch-BloodPressure-Analyzer
 repo_url: https://github.com/SportsLabResearch/SportsLabResearch-BloodPressure-Analyzer
+edit_uri: edit/main/docs/
+
+copyright: Copyright © 2026 SportsLabResearch
 
 theme:
   name: material
   language: en
+
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: blue
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+
+    - scheme: slate
+      primary: indigo
+      accent: blue
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
   features:
     - navigation.tabs
     - navigation.sections
     - navigation.expand
     - navigation.top
+    - navigation.footer
     - search.highlight
     - search.suggest
     - content.code.copy
+  
 
 plugins:
   - search
@@ -27,29 +48,45 @@ markdown_extensions:
   - attr_list
   - def_list
   - md_in_html
-  - pymdownx.highlight
+  - footnotes
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
   - pymdownx.superfences
   - pymdownx.inlinehilite
+  - pymdownx.details
   - pymdownx.tabbed:
       alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
 
 nav:
   - Home: index.md
-  - Getting Started: getting-started.md
-  - Installation: installation.md
+
+  - Getting Started:
+      - Overview: getting-started.md
+      - Installation: installation.md
+      - Downloads: downloads.md
 
   - User Guide:
       - Overview: user-guide/index.md
 
+  - Clinical Framework:
+      - ESH 2023: validation/index.md
+      - Validation Reports: validation/reports.md
+
   - Technical Reports:
       - Overview: technical-reports/index.md
 
-  - Validation:
-      - Overview: validation/index.md
-      - Reports: validation/reports.md
+  - Project:
+      - Citation: citation.md
+      - Publications: publications.md
+      - Changelog: changelog.md
+      - FAQ: faq.md
 
-  - Citation: citation.md
-  - Publications: publications.md
-  - Downloads: downloads.md
-  - FAQ: faq.md
-  - Changelog: changelog.md
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/SportsLabResearch
+      name: SportsLabResearch on GitHub
